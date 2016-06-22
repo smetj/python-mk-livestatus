@@ -27,7 +27,7 @@ class Query(object):
     __call__ = call
 
     def __str__(self):
-        request = 'GET %s' % (self._resource)
+        request = 'GET %s\nResponseHeader: fixed16' % (self._resource)
         if self._columns and any(self._columns):
             request += '\nColumns: %s' % (' '.join(self._columns))
         if self._filters:
@@ -63,8 +63,17 @@ class Socket(object):
             s.shutdown(socket.SHUT_WR)
             rawdata = s.makefile().read()
             if not rawdata:
-                raise Exception("Livestatus returned no data.")
-            data = json.loads(rawdata)
+                raise Exception("Livestatus service returned no data.")
+            data = self.validateHeader(rawdata)
+            data = json.loads(data)
             return [dict(zip(data[0], value)) for value in data[1:]]
         finally:
             s.close()
+
+    def validateHeader(self, rawdata):
+        header = rawdata[0:16]
+        if header[0:3] == "200":
+            data = rawdata[16:]
+            return data
+        else:
+            raise Exception("The Livestatus query contained an error. Reason: %s" % (rawdata[16:]))
