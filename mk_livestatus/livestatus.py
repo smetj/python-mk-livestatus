@@ -63,7 +63,7 @@ class Socket(object):
             s.shutdown(socket.SHUT_WR)
             rawdata = s.makefile().read()
             if not rawdata:
-                return []
+                raise Exception("Livestatus returned no data.")
             data = json.loads(rawdata)
             return [dict(zip(data[0], value)) for value in data[1:]]
         finally:
