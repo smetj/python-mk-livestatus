@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import unicode_literals
+from .errors import LivestatusError
 
 import socket
 import json
@@ -62,8 +63,11 @@ class Socket(object):
             s.send(request)
             s.shutdown(socket.SHUT_WR)
             rawdata = s.makefile().read()
+        except Exception as err:
+            raise LivestatusError("Failed to connect to Livestatus.  Reason: %s" % (err))
+        else:
             if not rawdata:
-                raise Exception("Livestatus service returned no data.")
+                raise LivestatusError("Livestatus service returned no data.")
             data = self.validateHeader(rawdata)
             data = json.loads(data)
             return [dict(zip(data[0], value)) for value in data[1:]]
@@ -76,4 +80,4 @@ class Socket(object):
             data = rawdata[16:]
             return data
         else:
-            raise Exception("The Livestatus query contained an error. Reason: %s" % (rawdata[16:]))
+            raise LivestatusError("The Livestatus query contained an error. Reason: %s" % (rawdata[16:]))
