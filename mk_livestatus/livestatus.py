@@ -64,7 +64,9 @@ class Socket(object):
             s.send(request)
             s.shutdown(socket.SHUT_WR)
             rawdata = s.makefile().read()
+            s.close()
         except Exception as err:
+            s.close()
             raise LivestatusError("Failed to connect to Livestatus.  Reason: %s" % (err))
         else:
             if not rawdata:
@@ -72,8 +74,6 @@ class Socket(object):
             data = self.validateHeader(rawdata)
             data = json.loads(data)
             return [dict(zip(data[0], value)) for value in data[1:]]
-        finally:
-            s.close()
 
     def validateHeader(self, rawdata):
         header = rawdata[0:16]
