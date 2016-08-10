@@ -57,6 +57,7 @@ class Socket(object):
         try:
             if len(self.peer) == 2:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             else:
                 s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             s.connect(self.peer)
