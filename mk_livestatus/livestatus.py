@@ -45,28 +45,50 @@ class Query(object):
         self._filters.append(filter_str)
         return self
 
+    def close(self):
+        pass
+
 
 class Socket(object):
     def __init__(self, peer):
         self.peer = peer
+        self.socket = None
+        self.fd = None
 
     def __getattr__(self, name):
         return Query(self, name)
 
+    def cleanup(self):
+
+        try:
+            self.fd.close()
+            del(self.fd)
+        except Exception:
+            pass
+        try:
+            self.socket.close()
+            del(self.socket)
+        except Exception:
+            pass
+
     def call(self, request):
         try:
             if len(self.peer) == 2:
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+                self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 1)
+                self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 3)
+                self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 5)
             else:
-                s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            s.connect(self.peer)
-            s.send(request)
-            s.shutdown(socket.SHUT_WR)
-            rawdata = s.makefile().read()
-            s.close()
+                self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            self.socket.connect(self.peer)
+            self.socket.send(request)
+            self.socket.shutdown(socket.SHUT_WR)
+            self.fd = self.socket.makefile()
+            rawdata = self.fd.read()
+            self.cleanup()
         except Exception as err:
-            s.close()
+            self.cleanup()
             raise LivestatusError("Failed to connect to Livestatus.  Reason: %s" % (err))
         else:
             if not rawdata:
