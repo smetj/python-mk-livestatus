@@ -50,10 +50,11 @@ class Query(object):
 
 
 class Socket(object):
-    def __init__(self, peer):
+    def __init__(self, peer, encoding="latin-1"):
         self.peer = peer
         self.socket = None
         self.fd = None
+        self.encoding = encoding
 
     def __getattr__(self, name):
         return Query(self, name)
@@ -94,7 +95,7 @@ class Socket(object):
             if not rawdata:
                 raise LivestatusError("Livestatus service returned no data.")
             data = self.validateHeader(rawdata)
-            data = json.loads(data)
+            data = json.loads(data, encoding=self.encoding)
             return [dict(zip(data[0], value)) for value in data[1:]]
 
     def validateHeader(self, rawdata):
